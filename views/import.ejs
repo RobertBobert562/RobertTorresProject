@@ -1,0 +1,92 @@
+  <%- include("_header") -%>
+  
+  <h1>Customer Import</h1>
+  <h2>Total number of records in the database: (<%= model %>)</h2>
+  
+  <form action="/import" method="post" enctype="multipart/form-data">
+    <div>
+      <label for="file">Select a file with customers for Database insert:</label>
+      <input type="file" id="file" name="file" required>
+    </div>
+    <div>
+      <button type="submit">Import Customers</button>
+    </div>
+  </form>
+
+  <div id="import-progress" style="display: none;">
+    <p>Please wait for the import to complete...</p>
+    <progress id="import-progress-bar" max="100" value="0"></progress>
+  </div>
+
+  <div id="import-summary" style="display: none;">
+    <h2>Import Summary</h2>
+    <p>Total records processed: <span id="total-records"></span></p>
+    <p>Records inserted successfully: <span id="success-records"></span></p>
+    <p>Records not inserted: <span id="failed-records"></span></p>
+    <div id="error-details" style="display: none;">
+      <h3>Errors</h3>
+      <ul id="error-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const importForm = document.querySelector('form');
+    const importProgress = document.getElementById('import-progress');
+    const importProgressBar = document.getElementById('import-progress-bar');
+    const importSummary = document.getElementById('import-summary');
+    const totalRecords = document.getElementById('total-records');
+    const successRecords = document.getElementById('success-records');
+    const failedRecords = document.getElementById('failed-records');
+    const errorDetails = document.getElementById('error-details');
+    const errorList = document.getElementById('error-list');
+
+    importForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const fileInput = document.getElementById('file');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('no file chosen');
+        return;
+      }
+
+      importForm.style.display = 'none';
+      importProgress.style.display = 'block';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const importResult = await response.json();
+
+        importProgress.style.display = 'none';
+        importSummary.style.display = 'block';
+
+        totalRecords.textContent = importResult.total;
+        successRecords.textContent = importResult.success;
+        failedRecords.textContent = importResult.failed;
+
+        if (importResult.errors.length > 0) {
+          errorDetails.style.display = 'block';
+
+          for (const error of importResult.errors) {
+            const listItem = document.createElement('li');
+            listItem.textContent = error;
+            errorList.appendChild(listItem);
+          }
+        }
+      } else {
+        alert('Failed to import customers. Please try again later.');
+        console.error(await response.text());
+      }
+    });
+  </script>
+</body>
+</html>
+<%- include("_footer") -%>
