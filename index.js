@@ -4,9 +4,9 @@ const app = express();
 const path = require('path');
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-// const multer = require("multer");
-// const upload = multer();
 const bodyParser = require('body-parser');
+const multer = require('multer');
+const upload = multer();
 
 const dblib = require("./dblib.js");
 
@@ -50,7 +50,7 @@ app.get("/mgmt", async (req, res) => {
     });
 });
 
-app.post('/formPost', (req, res) => {
+app.post('/mgmt', (req, res) => {
   const id = req.body.id || '';
   const fName = req.body.fName || '';
   const lName = req.body.lName || '';
@@ -114,3 +114,99 @@ app.get("/import", (req, res) => {
       });
 });
 
+app.post("/import",  upload.single('filename'), (req, res) => {
+  if(!req.file || Object.keys(req.file).length === 0) {
+      message = "Error: Import file not uploaded";
+      return res.send(message);
+  };
+  //Read file line by line, inserting records
+  const buffer = req.file.buffer; 
+  const lines = buffer.toString().split(/\r?\n/);
+
+  lines.forEach(line => {
+       //console.log(line);
+       product = line.split(",");
+       //console.log(product);
+       const sql = "INSERT INTO customer (cusId, cusFname, cusLname, cusState, cusSalesYTD, cusSalesPrev) VALUES ($1, $2, $3, $4, $5, $6)";
+       pool.query(sql, product, (err, result) => {
+           if (err) {
+               console.log(`Insert Error.  Error message: ${err.message}`);
+           } else {
+               console.log(`Inserted successfully`);
+           }
+      });
+  });
+  message = `Processing Complete - Processed ${lines.length} records`;
+  res.send(message);
+});
+
+  //GET displays simple form
+  app.get("/export", (req, res) => {
+    var message = "";
+    res.render("export", { message: message });
+  });
+  
+  //POST:
+  //Runs a query to get all database records
+  app.post("/export", (req, res) => {
+    const sql = "SELECT * FROM customer ORDER BY cusid";
+    pool.query(sql, [], (err, result) => {
+      //Assigns variable output an empty string
+        var message = "";
+      if (err) {
+        message = `Error - ${err.message}`;
+        res.render("export", { message: message })
+      } else {
+        //Appends output with each database record
+        var output = "";
+        //loop through records to create csv
+        result.rows.forEach(customer => {
+          output += `${customer.cusid},${customer.cusfname},${customer.cuslname},${customer.cusstate},${customer.cussalesytd},${customer.cussalesprev}\r\n`;
+        });
+        //Sets the response header type and attachment file name (hard coded to export.csv)
+        res.header("Content-Type", "text/csv");
+        res.attachment("export.csv");
+        //Returns output (will be downloaded)
+        return res.send(output);
+      };
+    });
+  });
+  
+
+// GET /create
+app.get("/create", (req, res) => {
+  res.render("create", { cus: {} });
+});
+
+app.post("/create", (req, res) => {
+  const sql = "INSERT INTO customer (cusId, cusFname, cusLname, cusState, cusSalesYTD, cusSalesPrev) VALUES ($1, $2, $3, $4, $5, $6)";
+  const cus = [req.body.cusId, req.body.cusFname, req.body.cusLname, req.body.cusState, req.body.cusSalesYTD, req.body.cusSalesPrev];
+  pool.query(sql, cus, (err, result) => {
+    if (err) {
+      res.render("create", {
+        error: "Error creating customer.",
+        cus: req.body,
+      });
+    } else {
+      res.render("create", {
+        success: "Customer created successfully.",
+        cus: req.body,
+      });
+    }
+  });
+});
+
+app.get("/edit/:cusId", (req, res) => {
+  const cusId = req.params.cusId;
+  const sql = "SELECT * FROM customer WHERE cusId = $1";
+  pool.query(sql, [cusId], (err, result) => {
+    // if (err) ...
+    const customer = result.rows[0];
+    dblib.findcustomers((err, customer) => {
+      if (err) {
+        // handle error
+      }
+      res.render("edit", { model: customer, customer: customer });
+    });
+  });
+});

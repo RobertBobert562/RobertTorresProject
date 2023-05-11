@@ -1,7 +1,22 @@
 <%- include("_header") -%>
 
-<h1>Customer Import</h1>
+<h1>Edit Item</h1>
 
-<h2>Total number of records in the dayabase: (<%= model.totrecords %>)</h2>
-<br>
-<h2>Select a file with customers for Databse insert</h2>
+<h1>Update a record</h1>
+
+<form action="/edit/<%= model.cusId %>" method="post">
+  <div class="form-horizontal">
+
+    <%- include("_editor") -%>
+
+    <div class="form-group row">
+      <label class="col-form-label col-sm-2"></label>
+      <div class="col-sm-10">
+        <input type="submit" value="Update" class="btn btn-default btn-warning" />
+        <a class="btn btn-outline-dark cancel" href="/index">Cancel</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<%- include("_footer") -%>
