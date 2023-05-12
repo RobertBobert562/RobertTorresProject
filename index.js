@@ -50,7 +50,7 @@ app.get("/mgmt", async (req, res) => {
     });
 });
 
-app.post('/mgmt', (req, res) => {
+app.post('/formPost', (req, res) => {
   const id = req.body.id || '';
   const fName = req.body.fName || '';
   const lName = req.body.lName || '';
@@ -196,7 +196,7 @@ app.post("/create", (req, res) => {
   });
 });
 
-app.get("/edit/:cusId", (req, res) => {
+app.get("/edit/:cusid", (req, res) => {
   const cusId = req.params.cusId;
   const sql = "SELECT * FROM customer WHERE cusId = $1";
   pool.query(sql, [cusId], (err, result) => {
